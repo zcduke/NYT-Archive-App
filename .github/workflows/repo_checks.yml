@@ -1,0 +1,45 @@
+on: push
+name: Repo Checks
+jobs:
+  check_allowed_files:
+    runs-on: self-hosted
+    container:
+      image: ghcr.io/sta523-fa24/sta523-base:latest
+    timeout-minutes: 3
+    steps:
+    - name: Checkout
+      uses: actions/checkout@master
+    - name: Check Files
+      run: |
+        checklist::quit_on_failure({
+          checklist::check_allowed_files(
+            c("midterm2.qmd", "midterm2.Rproj", "README.*", "midterm2.R")
+          )
+        })
+      shell: Rscript {0}
+  check_renders:
+    needs: check_allowed_files
+    runs-on: self-hosted
+    container:
+      image: ghcr.io/sta523-fa24/sta523-base:latest
+    timeout-minutes: 10
+    steps:
+    - name: Remove old artifacts
+      uses: c-hive/gha-remove-artifacts@v1
+      with:
+        age: '0 seconds' # parsed by Moment.js
+        skip-tags: false
+        skip-recent: 0
+      
+    - name: Checkout
+      uses: actions/checkout@master
+    
+    - name: Check Renders
+      run: |
+        checklist::check_qmd_renders("midterm2.qmd", install_missing = TRUE)
+      shell: Rscript {0}
+    - name: Create artifacts
+      uses: actions/upload-artifact@master
+      with:
+        name: midterm2-html
+        path: midterm2.html

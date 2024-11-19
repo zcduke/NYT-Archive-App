@@ -1,0 +1,72 @@
+---
+title: "Sta 523 - Midterm 2"
+subtitle: "Due Monday, December 2nd by 5:00 pm."
+author: Your name here
+format: 
+  html:
+    self-contained: true
+---
+
+Before you start be sure to read through *all* of the rules and instructions in the `README.md`.
+
+
+<br/>
+
+### Setup
+
+```{r setup, include=FALSE}
+library(tidyverse)
+```
+
+-----
+
+### Task 1 - Understanding the NY Times Article Search API
+
+```
+https://api.nytimes.com/svc/search/v2/articlesearch.json?
+```
+
+* `begin_date=`
+
+* `end_date=`
+
+* `facet=`
+
+* `facet_fields=`
+
+* `facet_filter=`
+
+* `fl=`
+
+* `fq=`
+
+* `page=`
+
+* `q=`
+
+* `sort=`
+
+-----   
+
+### Task 2 - Getting data from the API
+
+```{r}
+get_nyt_articles = function(year, month, day, api_key) {
+  
+}
+```
+
+```{r}
+# Show sample output for your function
+get_nyt_articles()
+```
+
+<!-- Include your brief write up below -->
+
+-----
+
+### Task 3 - Shiny Front End
+
+<!-- Shiny App should be implemented in midterm2.R -->
+
+<!-- Include your brief write up below -->
