@@ -1,3 +1,6 @@
+[![Repo Checks](https://github.com/sta523-fa24/midterm2_zcduke/workflows/Repo%20Checks/badge.svg)](https://github.com/sta523-fa24/midterm2_zcduke/actions?query=workflow:%22Repo%20Checks%22)
+
+
 Sta 523 - Fall 2024 - Midterm 2
 -----------
 
