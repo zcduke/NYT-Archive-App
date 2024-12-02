@@ -1,7 +1,7 @@
 ---
 title: "Sta 523 - Midterm 2"
 subtitle: "Due Monday, December 2nd by 5:00 pm."
-author: Your name here
+author: Zhihao Chen
 format: 
   html:
     self-contained: true
@@ -23,46 +23,150 @@ library(tidyverse)
 ### Task 1 - Understanding the NY Times Article Search API
 
 ```
-https://api.nytimes.com/svc/search/v2/articlesearch.json?
+https://api.nytimes.com/svc/search/v2/articlesearch.json?api-key=MhgXZQJilpJv1wFcJmW1ZFW52GcPuQAL&begin_date=20200918&end_date=20200918&fq=document_type%3Aarticle%20AND%20print_page%3A1%20AND%20print_section%3A%22A%22&sort=relevance
 ```
 
-* `begin_date=`
+* `begin_date=20200918`
 
-* `end_date=`
+* `end_date=20200918`
 
-* `facet=`
+* `fq=document_type:article AND print_page:1 AND print_section:"A"`
 
-* `facet_fields=`
-
-* `facet_filter=`
-
-* `fl=`
-
-* `fq=`
-
-* `page=`
-
-* `q=`
-
-* `sort=`
+* `sort=relevance`
 
 -----   
 
 ### Task 2 - Getting data from the API
 
 ```{r}
+library(httr)
+library(jsonlite)
 get_nyt_articles = function(year, month, day, api_key) {
   
+  # Input validation
+  if (!is.numeric(year)) {
+    stop("Year must be numeric!")
+  }
+  
+  if (!is.numeric(month) || month < 1 || month > 12) {
+    stop("Month must be a number between 1 and 12!")
+  }
+  
+  if (!is.numeric(day) || day < 1 || day > 31) {
+    stop("Day must be a number between 1 and 31!")
+  }
+  
+  if (length(year) != 1 || length(month) != 1 || length(day) != 1) {
+    stop("All date components must be of length 1!")
+  }
+  
+  
+  # Format date components
+  formatted_date = sprintf("%04d%02d%02d", year, month, day)
+  
+  # Base URL
+  base_url = "https://api.nytimes.com/svc/search/v2/articlesearch.json"
+  
+  # Construct filter query
+  fq = paste(
+    'document_type:("article")',
+    'print_page:1',
+    'print_section:"A"',
+    sep = " AND "
+  )
+  
+  # Make initial request
+  query_params = list(
+    'api-key' = api_key,
+    'begin_date' = formatted_date,
+    'end_date' = formatted_date,
+    'fq' = fq,
+    'sort' = 'relevance', 
+    'page' = 0
+  )
+  
+  initial_response = GET(url = base_url, query = query_params)
+  
+  if (http_error(initial_response)) {
+    stop(sprintf("API request failed with status %s", status_code(initial_response)))
+  }
+  
+  initial_content = fromJSON(rawToChar(initial_response$content))
+  
+  # Get total hits
+  total_hits = initial_content$response$meta$hits
+  
+  # If results are empty, return empty data frame with correct structure
+  if (total_hits == 0) {
+    return(data.frame(
+      abstract = character(),
+      headline = character(),
+      byline = character(),
+      web_url = character(),
+      lead_paragraph = character(),
+      source = character(),
+      multimedia = list(),
+      stringsAsFactors = FALSE
+    ))
+  }
+  
+  # Calculate number of pages with 10 results per page
+  total_pages = ceiling(total_hits / 10)
+  
+  # Initialize list to store all results
+  all_results = list()
+  all_results[[1]] = initial_content$response$docs
+  
+  # If more than one page, return remaining pages
+  if (total_pages > 1) {
+    for (page in 1:(total_pages - 1)) {
+      # Sleep 6 seconds between calls to avoid limit
+      Sys.sleep(6)
+      
+      query_params$page = page
+      
+      response = GET(url = base_url, query = query_params)
+      
+      if (!http_error(response)) {
+        content = fromJSON(rawToChar(response$content))
+        all_results[[page + 1]] = content$response$docs
+      }
+    }
+  }
+  
+  # Combine results
+  all_docs = bind_rows(all_results)
+  
+  # Create tidy dataframe
+  result_df = all_docs |>
+    transmute(
+      abstract = abstract,
+      headline = headline$main,
+      byline = sapply(byline$person, function(x) {
+        if (length(x) > 0) {
+          paste(paste(x$firstname, x$lastname), collapse = ", ")
+        } else {
+          NA_character_
+        }
+      }),
+      web_url = web_url,
+      lead_paragraph = lead_paragraph,
+      source = source,
+      multimedia = multimedia
+    )
+  
+  return(result_df)
 }
+
 ```
 
 ```{r}
 # Show sample output for your function
-get_nyt_articles()
+get_nyt_articles(2020, 9, 18, "MhgXZQJilpJv1wFcJmW1ZFW52GcPuQAL")
 ```
 
 <!-- Include your brief write up below -->
-
+The implementation focuses on creating a function for retrieving New York Times article metadata through their Article Search API. At its core, the function processes user-provided date components and an API key to construct and execute appropriate HTTP requests, returning a tidy data frame of article information. This general framework is built upon three critical components that ensure reliable data retrieval. The first component handles pagination by initially querying the API to determine the total number of hits from `meta$hits`, then calculating the necessary number of pages given the 10-result-per-page limit and systematically retrieving all results through iteration, ultimately combining them using `bind_rows()`. The second component manages rate limiting by implementing a 6-second delay between requests using `Sys.sleep(6)`, placed strategically within the pagination loop to respect the NYT's 10-requests-per-minute limit. The third component ensures consistent output structure by handling empty results cases - when no articles are found, the function returns an empty data frame with predefined columns (abstract, headline, byline, web_url, lead_paragraph, source and multimedia), guaranteeing uniform data structure for downstream processing. 
 -----
 
 ### Task 3 - Shiny Front End
@@ -70,3 +174,4 @@ get_nyt_articles()
 <!-- Shiny App should be implemented in midterm2.R -->
 
 <!-- Include your brief write up below -->
+In my Shiny application, I developed a dynamic interface that allows users to explore New York Times front-page headlines from any specified date. The sidebar enables the selection of a specific date through a single `dateInput`, defaulting to my birthday in the first year I was enrolled in College. Additionally, users can securely input their own NYT API key, with a default key provided for convenience. An action button triggers the retrieval of articles, ensuring that API requests are only made upon user initiation. Upon fetching the data, the main panel displays the headlines as interactive cards, each accompanied by relevant bylines and, when available, high-quality images to enhance visual appeal. Clicking on any headline brings up a modal dialog containing detailed information, including the article's title, byline, introductory paragraph, and a direct link to the full article on the NYTimes website. This modal also showcases multimedia elements when available, enriching the user experience. The application uses dynamic UI rendering and observer management to handle varying numbers of articles seamlessly. For styling, I utilized the `bslib` package with the "flatly" theme to ensure a modern and responsive design. To enhance functionality and design, I incorporated insights and assistance from ChatGPT, which contributed to the development of bonus features and overall implementation.
