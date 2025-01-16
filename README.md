@@ -1,5 +1,12 @@
 [![Repo Checks](https://github.com/sta523-fa24/midterm2_zcduke/workflows/Repo%20Checks/badge.svg)](https://github.com/sta523-fa24/midterm2_zcduke/actions?query=workflow:%22Repo%20Checks%22)
 
+## Brief Introduction
+This is my midterm project for STA 523 (R Programming): a NYT Data Archive Shiny app. It allows users to get data including headline, byline, web url, lead paragraph, and source columns from the NY Times Article Search API
+
+This project was created by Zhihao Chen, under the instruction of Assistant Professor Colin Rundel for the Fall 2024 section of STA 523: Statistical Programming at Duke University.
+
+## Below is original requirements
+
 
 Sta 523 - Fall 2024 - Midterm 2
 -----------
